@@ -29,7 +29,7 @@ const productController= {
     },
     getProductById : (req , res) =>{
 // filtrer les donnees selon l'id
-    const { id , name , price , pu , qte} = req.params
+    const { id , name , priceI , priceF , qte} = req.params
     if(!req.params.id){
         return res.status(400).json({
             message: "id manquant"
@@ -48,8 +48,8 @@ const productController= {
     },
     createProduct: (req , res) =>{
     //ajouter un nouvel evenement
-        const {name , price , pu , qte} = req.body
-        if(!name || !price || !pu || !qte){
+        const {name , priceI , priceF , qte} = req.body
+        if(!name || !priceI || !priceF || !qte){
                 return res.status(400).json({message: "informations manquantes"})
         }
         // ecrire dans le fichier log.txt
@@ -58,8 +58,8 @@ const productController= {
         const newproduct = {
             id: bd.length > 0 ? bd[bd.length - 1].id + 1 : 1,
             name,
-            price,
-            pu,
+            priceI,
+            priceF,
             qte,
         }
         bd.push(newproduct)
@@ -73,9 +73,9 @@ const productController= {
     updateProduct : (req , res) =>{
         //modifier un produit
 
-        const {name , price, pu , qte} = req.body
+        const {name , priceI, priceF , qte} = req.body
         const {id} = req.params
-        if(!name || !price || !pu || !qte){
+        if(!name || !priceI || !priceF || !qte){
             return res.status(400).json({
                 message: "informations manquantes"
             })
@@ -88,8 +88,8 @@ const productController= {
             })
         }
         product.name = name;
-        product.price = price;
-        product.pu = pu;
+        product.priceI = priceI;
+        product.priceF = priceF;
         product.qte = qte;
         writeDatajson(bd)
         writeDatacsv(bd)
@@ -99,9 +99,9 @@ const productController= {
         })
     },
     deleteProduct : (req , res) =>{
-        const {name , price , pu , qte} = req.body
+        const {name , priceI , priceF , qte} = req.body
         const {id} = req.params
-        if(!name || !price || !pu || !qte){
+        if(!name || !priceI || !priceF || !qte){
             return res.status(400).json({
                 message: "informations manquantes"
             })
@@ -124,7 +124,8 @@ const productController= {
     },
     getProductsWithPromo : (req , res) =>{
         const bd = database()
-        const productsWithPromo = bd.filter(b => b.pu < b.price);
+        const {priceI , priceF} = req.body
+        const productsWithPromo = bd.filter(b => b.priceI > b.priceF);
         if(productsWithPromo.length === 0){
             return res.status(404).json({
                 message: "aucun produit en promo"
