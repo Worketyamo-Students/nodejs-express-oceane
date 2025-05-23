@@ -1,4 +1,5 @@
 import fs, { write } from "fs"
+import { create } from "node:domain";
 import { pipeline } from 'node:stream';
 import { promisify } from 'node:util';
 let id = Math.floor(Math.random() * 20); //Genere un id aleatoire
@@ -20,7 +21,7 @@ function writeDatacsv(bd) {
 database()
 
 const taskController= {
-    getAllProducts:  (req,res) =>{
+    getAllTasks:  (req,res) =>{
         res.status(200).json({
             message: "ok",
             bd:database(),
@@ -28,115 +29,127 @@ const taskController= {
          console.log(database())
 
     },
-    getProductById : (req , res) =>{
+    getTaskById : (req , res) =>{
 // filtrer les donnees selon l'id
-    const { id , name , priceI , priceF , qte} = req.params
+    const { id , name , date , duration} = req.params
     if(!req.params.id){
         return res.status(400).json({
             message: "id manquant"
         })
     }
-    const product = database().find(b => b.id === parseInt(req.params.id));
-    if(!product){
+    const task = database().find(b => b.id === parseInt(req.params.id));
+    if(!task){
         return res.status(404).json({
-            message: "produit non trouvé"
+            message: "tâche non trouvée"
         })
     }
     res.status(200).json({
         message: "ok",
-        product
+        task
     });
     },
-    createProduct: (req , res) =>{
-    //ajouter un nouvel evenement
-        const {name , priceI , priceF , qte} = req.body
-        if(!name || !priceI || !priceF || !qte){
-                return res.status(400).json({message: "informations manquantes"})
-        }
-        // ecrire dans le fichier log.txt
-        const bd = database()
+    // createTask: (req , res) =>{
+    // //ajouter un nouvel evenement
+    //     const {name , date , duration} = req.body
+    //     if(!name || !date || !duration){
+    //             return res.status(400).json({message: "informations manquantes"})
+    //     }
+    //     // ecrire dans le fichier log.txt
+    //     const bd = database()
 
-        const newproduct = {
-            id: bd.length > 0 ? bd[bd.length - 1].id + 1 : 1,
-            name,
-            priceI,
-            priceF,
-            qte,
-        }
-        bd.push(newproduct)
-        writeDatajson(bd)
-        writeDatacsv(bd)
-        res.status(201).json({
-            message: "produit ajouté",
-            product: newproduct
-        })
-    },
-    updateProduct : (req , res) =>{
-        //modifier un produit
+    //     const newtask = {
+    //         id: bd.length > 0 ? bd[bd.length - 1].id + 1 : 1,
+    //         name,
+    //         date,
+    //         duration,
+    //     }
+    //     bd.push(newtask)
+    //     writeDatajson(bd)
+    //     writeDatacsv(bd)
+    //     res.status(201).json({
+    //         message: "tâche ajoutée",
+    //         task: newtask
+    //     })
+    // },
+    
 
-        const {name , priceI, priceF , qte} = req.body
+    createTask: async (req , res) =>{
+        //ajouter un nouvel evenement
+            const {name , date , duration} = req.body
+            if(!name || !date || !duration){
+                    return res.status(400).json({message: "informations manquantes"})
+            }
+            // ecrire dans le fichier log.txt
+            const bd = database()
+
+            const newtask = {
+                id: bd.length > 0 ? bd[bd.length - 1].id + 1 : 1,
+                name,
+                date,
+                duration,
+            }
+            bd.push(newtask)
+            writeDatajson(bd)
+            writeDatacsv(bd)
+            res.status(201).json({
+                message: "tâche ajoutée",
+                task: newtask
+            })
+            // creer une nouvelle tache avec util.promisify
+
+        },
+    updateTask : (req , res) =>{
+        //modifier une tâche
+
+        const {name , date, duration} = req.body
         const {id} = req.params
-        if(!name || !priceI || !priceF || !qte){
+        if(!name || !date || !duration){
             return res.status(400).json({
                 message: "informations manquantes"
             })
         }
         const bd = database()
-        const product = bd.find(b => b.id === parseInt(id));
-        if(!product){
+        const task = bd.find(b => b.id === parseInt(id));
+        if(!task    ){
             return res.status(404).json({
-                message: "produit non trouvé"
+                message: "tâche non trouvée"
             })
         }
-        product.name = name;
-        product.priceI = priceI;
-        product.priceF = priceF;
-        product.qte = qte;
+        task.name = name;
+        task.date = date;
+        task.duration = duration;
         writeDatajson(bd)
         writeDatacsv(bd)
         res.status(200).json({
-            message: "produit modifié",
-            product
+            message: "tâche modifiée",
+            task
         })
     },
-    deleteProduct : (req , res) =>{
-        const {name , priceI , priceF , qte} = req.body
+    deleteTask : (req , res) =>{
+        const {name , date , duration} = req.body
         const {id} = req.params
-        if(!name || !priceI || !priceF || !qte){
+        if(!name || !date || !duration){
             return res.status(400).json({
                 message: "informations manquantes"
             })
         }
         const bd = database()
-        const product = bd.find(b => b.id === parseInt(id));
-        if(!product){
+        const task = bd.find(b => b.id === parseInt(id));
+        if(!task){
             return res.status(404).json({
-                message: "produit non trouvé"
+                message: "tâche non trouvée"
             })
         }
-        const index = bd.indexOf(product);
+        const index = bd.indexOf(task);
         bd.splice(index, 1);
         writeDatajson(bd)
         writeDatacsv(bd)
         res.status(200).json({
-            message: "produit supprimé",
-            product
+            message: "tâche supprimée",
+            task
         })
     },
-    getProductsWithPromo : (req , res) =>{
-        const bd = database()
-        const {priceI , priceF} = req.body
-        const productsWithPromo = bd.filter(b => b.priceI > b.priceF);
-        if(productsWithPromo.length === 0){
-            return res.status(404).json({
-                message: "aucun produit en promo"
-            })
-        }
-        res.status(200).json({
-            message: "ok",
-            productsWithPromo
-        })
-    },
+    
 
 
 }
