@@ -1,6 +1,9 @@
 import fs, { write } from "fs"
+import { pipeline } from 'node:stream';
 let id = Math.floor(Math.random() * 20); //Genere un id aleatoire
 const databases = "./database.json"
+const writeFlux = fs.createWriteStream('./log.txt', {flags: 'a'});
+
 function database() {
     const bd = JSON.parse(fs.readFileSync("./database.json", "utf8"));
     return bd;
@@ -27,36 +30,39 @@ const eventcontroller= {
     },
     getAllEventsById : (req , res) =>{
 // filtrer les donnees selon l'id
-    const { id , nom , age} = req.params
+    const { id , name , date} = req.params
     if(!req.params.id){
         return res.status(400).json({
             message: "id manquant"
         })
     }
-    const book = database().find(b => b.id === parseInt(req.params.id));
-    if(!book){
+    const event = database().find(b => b.id === parseInt(req.params.id));
+    if(!event){
         return res.status(404).json({
-            message: "livre non trouvé"
+            message: "evenement non trouvé"
         })
     }
     res.status(200).json({
         message: "ok",
-        book
+        event
     });
     },
     createEvents: (req , res) =>{
     //ajouter un nouvel evenement
-        const {nom , numero} = req.body
-        if(!nom || !numero){
-                return res.status(400).json({
-                    message: "informations manquantes"
-            })
-        }   
+        const {name , date} = req.body
+        if(!name || !date){
+                return res.status(400).json({message: "informations manquantes"})
+        }
+        writeFlux.write(`event added: ${name}, ${date} at ${Date()}\n`, (err) => {
+            if(err) console.error(err);
+        });
+        // ecrire dans le fichier log.txt
         const bd = database()
+
         const newEvent = {
             id: bd.length > 0 ? bd[bd.length - 1].id + 1 : 1,
-            nom,
-            numero
+            name,
+            date
         }
         bd.push(newEvent)
         writeDatajson(bd)
@@ -65,19 +71,13 @@ const eventcontroller= {
             message: "evenement ajouté",
             event: newEvent
         })
-        //ajouter un nouvel evenement avec la methode map
-        // const newEvent = {
-        //     id: bd.length > 0 ? bd[bd.length - 1].id + 1 : 1,
-        //     nom,
-        //     numero
-        // }
     },
     updateEvent : (req , res) =>{
         //modifier un evenement
 
-        const {nom , age } = req.body
+        const {name , date} = req.body
         const {id} = req.params
-        if(!nom || !age){
+        if(!name || !date){
             return res.status(400).json({
                 message: "informations manquantes"
             })
@@ -89,8 +89,8 @@ const eventcontroller= {
                 message: "evenement non trouvé"
             })
         }
-        event.nom = nom;
-        event.age = age;
+        event.name = name;
+        event.date = date;
         writeDatajson(bd)
         writeDatacsv(bd)
         res.status(200).json({
@@ -99,9 +99,9 @@ const eventcontroller= {
         })
     },
     deleteEvent : (req , res) =>{
-                const {nom , age } = req.body
+        const {name , date} = req.body
         const {id} = req.params
-        if(!nom || !age){
+        if(!name || !date){
             return res.status(400).json({
                 message: "informations manquantes"
             })
