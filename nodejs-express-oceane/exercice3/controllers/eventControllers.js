@@ -60,7 +60,7 @@ const eventcontroller= {
         const bd = database()
 
         const newEvent = {
-            id: bd.length > 0 ? bd[bd.length - 1].id + 1 : 1,
+            id: id,
             name,
             date
         }
