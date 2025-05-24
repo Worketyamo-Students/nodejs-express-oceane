@@ -60,14 +60,16 @@ const taskController = {
             };
             tasks.push(newTask);
             await writeFileAsync(path.join(__dirname, '../database.json'), JSON.stringify(tasks, null, 2));
+            await writeFileAsync(path.join(__dirname, '../database.csv'), JSON.stringify(tasks));
+
             res.status(201).json({
                 message: "Task created successfully",
                 task: newTask
             });
         } catch (error) {
-            console.error("Error creating task:", error);
+            console.error("erreur de creation:", error);
             res.status(500).json({
-                message: "Internal server error"
+                message: "erreur interne du serveur"
             });
         }
     },
@@ -109,7 +111,35 @@ const taskController = {
         });
     },
     deleteTask:(req, res) => {
+        const { id } = req.params;
+        fs.readFile(path.join(__dirname, '../database.json'), 'utf-8', (err, data) => {
+            if (err) {
+                console.error("Error reading tasks:", err);
+                return res.status(500).json({
+                    message: "Internal server error"
+                });
+            }
+            const tasks = JSON.parse(data);
+            const taskIndex = tasks.findIndex(t => t.id === parseInt(id));
+            if (taskIndex === -1) {
+                return res.status(404).json({
+                    message: "Task not found"
+                });
+            }
+            tasks.splice(taskIndex, 1);
+            fs.writeFile(path.join(__dirname, '../database.json' ), JSON.stringify(tasks, null, 2), (err) => {
+                if (err) {
+                    console.error("Error deleting task:", err);
+                    return res.status(500).json({
+                        message: "Internal server error"
+                    });
+                }
+                res.status(200).json({
+                    message: "Task deleted successfully"
+                });
+            });
 
+        });
     }
 }
 module.exports = taskController;

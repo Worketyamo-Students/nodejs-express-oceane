@@ -1,14 +1,14 @@
 import fs from "fs"
 let id = Math.floor(Math.random() * 20); //Genere un id aleatoire
 function database() {
-    const bd = JSON.parse(fs.readFileSync("../db.json", "utf8"));
+    const bd = JSON.parse(fs.readFileSync("./db.json", "utf8"));
     return bd;
 }
 function writeDatajson(bd) {
-    fs.writeFileSync("../db.json", JSON.stringify(bd, null, 2));
+    fs.writeFileSync("./db.json", JSON.stringify(bd, null, 2));
 }
 function writeDatacsv(bd) {
-    fs.writeFileSync("../database.csv", JSON.stringify(bd));
+    fs.writeFileSync("./database.csv", JSON.stringify(bd));
 }
 
 

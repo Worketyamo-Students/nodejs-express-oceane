@@ -7,7 +7,7 @@ import router from './routes/bookRoutes.js';
 const app = express();
 app.use(bodyParser.json());
 app.use(router);
-const port = 3000;
+const port = 8000;
 
 app.listen(port, (err) => {
     if (err) throw err;
