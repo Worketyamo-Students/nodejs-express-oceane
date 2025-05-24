@@ -72,7 +72,41 @@ const taskController = {
         }
     },
     updateTask: (req, res) => {
-
+        const { id } = req.params;
+        const { name, date, description } = req.body;
+        if (!name || !date || !description) {
+            return res.status(400).json({
+                message: "informations manquantes"
+            });
+        }
+        fs.readFile(path.join(__dirname, '../database.json'), 'utf-8', (err, data) => {
+            if (err) {
+                console.error("Error reading tasks:", err);
+                return res.status(500).json({
+                    message: "Internal server error"
+                });
+            }
+            const tasks = JSON.parse(data);
+            const taskIndex = tasks.findIndex(t => t.id === parseInt(id));
+            if (taskIndex === -1) {
+                return res.status(404).json({
+                    message: "Task not found"
+                });
+            }
+            tasks[taskIndex] = { id: parseInt(id), name, date, description };
+            fs.writeFile(path.join(__dirname, '../database.json'), JSON.stringify(tasks, null, 2), (err) => {
+                if (err) {
+                    console.error("Error updating task:", err);
+                    return res.status(500).json({
+                        message: "Internal server error"
+                    });
+                }
+                res.status(200).json({
+                    message: "Task updated successfully",
+                    task: tasks[taskIndex]
+                });
+            });
+        });
     },
     deleteTask:(req, res) => {
 
