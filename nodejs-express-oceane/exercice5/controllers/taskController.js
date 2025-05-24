@@ -1,156 +1,81 @@
-import fs, { write } from "fs"
-import { create } from "node:domain";
-import { pipeline } from 'node:stream';
-import { promisify } from 'node:util';
+const fs = require('fs');
+const path = require('path');
 let id = Math.floor(Math.random() * 20); //Genere un id aleatoire
-const databases = "./database.json"
+const util = require('util');
+const writeFileAsync = util.promisify(fs.writeFile);
 
-function database() {
-    const bd = JSON.parse(fs.readFileSync("./database.json", "utf8"));
-    return bd;
-    
-}
-function writeDatajson(bd) {
-    fs.writeFileSync("./database.json", JSON.stringify(bd, null, 2));
-}
-function writeDatacsv(bd) {
-    fs.writeFileSync("./database.csv", JSON.stringify(bd));
-}
-
-
-database()
-
-const taskController= {
-    getAllTasks:  (req,res) =>{
-        res.status(200).json({
-            message: "ok",
-            bd:database(),
-        })
-         console.log(database())
-
+const taskController = {
+    getAllTasks: async (req, res) => {
+        try {
+            const data = await fs.promises.readFile(path.join(__dirname, '../database.json'), 'utf-8');
+            const tasks = JSON.parse(data);
+            res.status(200).json({
+                message: "ok",
+                tasks: tasks
+            });
+        } catch (error) {
+            console.error("Error reading tasks:", error);
+            res.status(500).json({
+                message: "Internal server error"
+            });
+        }
     },
-    getTaskById : (req , res) =>{
-// filtrer les donnees selon l'id
-    const { id , name , date , duration} = req.params
-    if(!req.params.id){
-        return res.status(400).json({
-            message: "id manquant"
-        })
-    }
-    const task = database().find(b => b.id === parseInt(req.params.id));
-    if(!task){
-        return res.status(404).json({
-            message: "tâche non trouvée"
-        })
-    }
-    res.status(200).json({
-        message: "ok",
-        task
-    });
-    },
-    // createTask: (req , res) =>{
-    // //ajouter un nouvel evenement
-    //     const {name , date , duration} = req.body
-    //     if(!name || !date || !duration){
-    //             return res.status(400).json({message: "informations manquantes"})
-    //     }
-    //     // ecrire dans le fichier log.txt
-    //     const bd = database()
-
-    //     const newtask = {
-    //         id: bd.length > 0 ? bd[bd.length - 1].id + 1 : 1,
-    //         name,
-    //         date,
-    //         duration,
-    //     }
-    //     bd.push(newtask)
-    //     writeDatajson(bd)
-    //     writeDatacsv(bd)
-    //     res.status(201).json({
-    //         message: "tâche ajoutée",
-    //         task: newtask
-    //     })
-    // },
-    
-
-    createTask: async (req , res) =>{
-        //ajouter un nouvel evenement
-            const {name , date , duration} = req.body
-            if(!name || !date || !duration){
-                    return res.status(400).json({message: "informations manquantes"})
+    getTaskById: async (req, res) => {
+        const { id  , name, date, description } = req.params;
+        try {
+            const data = await fs.promises.readFile(path.join(__dirname, '../database.json'), 'utf-8');
+            const tasks = JSON.parse(data);
+            const task = tasks.find(t => t.id === parseInt(id));
+            if (!task) {
+                return res.status(404).json({
+                    message: "Task not found"
+                });
             }
-            // ecrire dans le fichier log.txt
-            const bd = database()
-
-            const newtask = {
-                id: bd.length > 0 ? bd[bd.length - 1].id + 1 : 1,
+            res.status(200).json({
+                message: "ok",
+                task: task
+            });
+        } catch (error) {
+            console.error("Error reading task:", error);
+            res.status(500).json({
+                message: "Internal server error"
+            });
+        }
+    },
+    createTask: async (req, res) => {
+        const { name, date, description } = req.body;
+        if (!name || !date || !description) {
+            return res.status(400).json({
+                message: "informations manquantes"
+            });
+        }
+        try {
+            const data = await fs.promises.readFile(path.join(__dirname, '../database.json'), 'utf-8');
+            const tasks = JSON.parse(data);
+            const newTask = {
+                id: id,
                 name,
                 date,
-                duration,
-            }
-            bd.push(newtask)
-            writeDatajson(bd)
-            writeDatacsv(bd)
+                description
+            };
+            tasks.push(newTask);
+            await writeFileAsync(path.join(__dirname, '../database.json'), JSON.stringify(tasks, null, 2));
             res.status(201).json({
-                message: "tâche ajoutée",
-                task: newtask
-            })
-            // creer une nouvelle tache avec util.promisify
-
-        },
-    updateTask : (req , res) =>{
-        //modifier une tâche
-
-        const {name , date, duration} = req.body
-        const {id} = req.params
-        if(!name || !date || !duration){
-            return res.status(400).json({
-                message: "informations manquantes"
-            })
+                message: "Task created successfully",
+                task: newTask
+            });
+        } catch (error) {
+            console.error("Error creating task:", error);
+            res.status(500).json({
+                message: "Internal server error"
+            });
         }
-        const bd = database()
-        const task = bd.find(b => b.id === parseInt(id));
-        if(!task    ){
-            return res.status(404).json({
-                message: "tâche non trouvée"
-            })
-        }
-        task.name = name;
-        task.date = date;
-        task.duration = duration;
-        writeDatajson(bd)
-        writeDatacsv(bd)
-        res.status(200).json({
-            message: "tâche modifiée",
-            task
-        })
     },
-    deleteTask : (req , res) =>{
-        const {name , date , duration} = req.body
-        const {id} = req.params
-        if(!name || !date || !duration){
-            return res.status(400).json({
-                message: "informations manquantes"
-            })
-        }
-        const bd = database()
-        const task = bd.find(b => b.id === parseInt(id));
-        if(!task){
-            return res.status(404).json({
-                message: "tâche non trouvée"
-            })
-        }
-        const index = bd.indexOf(task);
-        bd.splice(index, 1);
-        writeDatajson(bd)
-        writeDatacsv(bd)
-        res.status(200).json({
-            message: "tâche supprimée",
-            task
-        })
+    updateTask: (req, res) => {
+
     },
-    
+    deleteTask:(req, res) => {
 
-
+    }
 }
-export default taskController
+module.exports = taskController;
